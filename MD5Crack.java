@@ -1,8 +1,7 @@
-import java.sql.Timestamp;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Timestamp;
 
 public class MD5Crack {
 
@@ -21,6 +20,8 @@ public class MD5Crack {
 
         String guessStr = "";
 
+        int nextMilestone = 25;
+
         for (long n = 0; n < searchSpace; n++) {
             char[] guess = new char[pwLength];
             long temp = n;
@@ -38,6 +39,12 @@ public class MD5Crack {
                 isFound = true;
                 break;
             }
+
+            double percentComplete = ((double) n / searchSpace) * 100;
+            if (percentComplete >= nextMilestone) {
+                System.out.println("Progress: " + nextMilestone + "%");
+                nextMilestone += 25;
+            }
         }
 
         if(!isFound) {
@@ -45,8 +52,10 @@ public class MD5Crack {
         }
         
         Timestamp timesEnd = new Timestamp(System.currentTimeMillis());
+
         System.out.println(timesStart);
         System.out.println(timesEnd);
+        System.out.println("Time taken: " + (timesEnd.getTime() - timesStart.getTime()) + " milliseconds");
     }
 
     public static String getMd5(String input) {
