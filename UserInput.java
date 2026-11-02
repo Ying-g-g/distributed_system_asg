@@ -48,5 +48,13 @@ public class UserInput {
         }
 
         scanner.close();
+
+        MD5Crack.main(new String[] 
+            {
+                md5HashValue,
+                String.valueOf(noOfThreads),
+                String.valueOf(passwordLength)
+            }
+        );
     }
 }
