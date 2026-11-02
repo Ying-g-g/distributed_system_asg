@@ -6,10 +6,14 @@ public class UserInput {
 
         Scanner scanner = new Scanner(System.in);
 
+        String md5HashValue = "";
+        int noOfThreads = 0;
+        int passwordLength = 0;
+
         while(true) {
 
                 System.out.print("Please enter the MD5 hash value (no symbols or spaces): ");
-                String md5HashValue = scanner.nextLine().trim();
+                md5HashValue = scanner.nextLine().trim();
                 if (md5HashValue.matches("[a-fA-F0-9]{32}")) {
                     break;
                 } else {
@@ -21,7 +25,7 @@ public class UserInput {
 
             try {
                 System.out.print("Please enter the number of threads (1-10): ");
-                int noOfThreads = Integer.parseInt(scanner.nextLine());
+                noOfThreads = Integer.parseInt(scanner.nextLine());
                 if (noOfThreads >= 1 && noOfThreads <= 10) {
                     break;
                 } else {
@@ -36,7 +40,7 @@ public class UserInput {
 
             try {
                 System.out.print("Please enter the password length (2-6): ");
-                int passwordLength = Integer.parseInt(scanner.nextLine());
+                passwordLength = Integer.parseInt(scanner.nextLine());
                 if (passwordLength >= 2 && passwordLength <= 6) {
                     break;
                 } else {
