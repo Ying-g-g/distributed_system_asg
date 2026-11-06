@@ -1,84 +1,101 @@
+import java.sql.Timestamp;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.sql.Timestamp;
 
 public class MD5Crack {
+    //Declare all variables
+    static volatile boolean found = false;
+    static volatile String foundPassword = null;
+    static volatile int foundThreadId = -1;
 
+    //Function to call out all executing functions
     public static void main(String[] args) {
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        System.out.println("Starting MD5 crack at " + timestamp);
+        String targetHash = args[0];  //get the target hash from the command line arguments
+        int numThreads = Integer.parseInt(args[1]);  //get the number of threads
+        int pwLength = Integer.parseInt(args[2]);  //get the password length
 
-        Timestamp timesStart = new Timestamp(System.currentTimeMillis());
-        Boolean isFound = false;
-        
-        //Retrieve user input
-        String targetHash = args[0];
-        int numThreads = Integer.parseInt(args[1]);
-        int pwLength = Integer.parseInt(args[2]);
+        long searchSpace = (long) Math.pow(95, pwLength);  //calculate the total search space based on the password length
+        Thread[] threads = createThreads(numThreads, searchSpace, pwLength, targetHash);  //create the threads
 
-        //Declare search space
-        long searchSpace = (long) Math.pow(95, pwLength);
-
-        String guessStr = "";
-
-        int nextMilestone = 25;
-
-        for (long n = 0; n < searchSpace; n++) {
-            char[] guess = new char[pwLength];
-            long temp = n;
-
-            for (int i = pwLength - 1; i >= 0; i--) {
-                guess[i] = (char) (32 + (temp % 95));
-                temp /= 95;
-            }
-
-            String guessString = new String(guess);
-            String hash = getMd5(guessString);
-
-            if(hash.equalsIgnoreCase(targetHash)) {
-                System.out.println("Password found: " + guessString);
-                isFound = true;
-                break;
-            }
-
-            double percentComplete = ((double) n / searchSpace) * 100;
-            if (percentComplete >= nextMilestone) {
-                System.out.println("Progress: " + nextMilestone + "%");
-                nextMilestone += 25;
+        for (Thread thread : threads) {
+            thread.start();  //start each thread
+        }
+        for (Thread thread : threads) {
+            try {
+                thread.join();  //wait for each thread to finish
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
-
-        if(!isFound) {
+        Timestamp endTimestamp = new Timestamp(System.currentTimeMillis());
+        if (found) {
+            System.out.println("Password found: " + foundPassword + " by thread " + foundThreadId);
+        } else {
             System.out.println("Password not found.");
         }
-        
-        Timestamp timesEnd = new Timestamp(System.currentTimeMillis());
 
-        System.out.println(timesStart);
-        System.out.println(timesEnd);
-        System.out.println("Time taken: " + (timesEnd.getTime() - timesStart.getTime()) + " milliseconds");
+        System.out.println("Ending MD5 crack at " + endTimestamp);
+        System.out.println("Total time taken: " + (endTimestamp.getTime() - timestamp.getTime()) + " milliseconds");
+        
     }
 
-    public static String getMd5(String input) {
+    static Thread[] createThreads(int numThreads, long searchSpace, int pwLength, String targetHash) {
+        long chunkSize = searchSpace / numThreads;
+        long remainder = searchSpace % numThreads;  //in case the search space is not evenly divisible by the number of threads
+
+        Thread[] threads = new Thread[numThreads];  //array to hold threads once created
+        long start = 0;                             //tracker of where the current thread should start searching
+        for (int t = 0; t < numThreads; t++) {
+            long size = chunkSize + (t < remainder ? 1 : 0);  //distribute the remainder among the first few threads
+            /* will assign the remainders for the front threads first
+               for example if remainder  = 1 will assign extra one to thread 0, remainder = 2 will assign one for thread 0 and one for thread 1*/
+            long rangeStart = start;
+            long rangeEnd = start + size - 1;  //calculate the end of the range for the current thread
+            int threadId = t;  //store the thread id for use in the lambda expression
+            threads[t] = new Thread(() -> {
+                searchRange(rangeStart, rangeEnd, pwLength, targetHash, threadId);  //call the searchRange function for the current thread
+            });
+            start = rangeEnd + 1;  //update the start position for the next thread
+        }
+        return threads;
+    }
+
+    static void searchRange(long start, long end, int pwLength, String targetHash, int threadId) {
+        for (long i = start; i <= end && !found; i++) {
+            if (found) return;
+            char[] guess = new char[pwLength];
+            long temp = i;
+            for (int j = pwLength - 1; j >= 0; j--) {
+                guess[j] = (char) (32 + (temp % 95));  //generate the password guess based on the current number
+                temp /= 95;  //divide by 95 to move to the next character in the guess
+            }
+            String guessStr = new String(guess);  //convert the character array to a string
+            String guessHash = md5(guessStr);  //calculate the MD5 hash of
+
+            if (guessHash.equalsIgnoreCase(targetHash)) {  //check if the guess hash matches the target hash
+                found = true;  //set the found flag to true
+                foundPassword = guessStr;  //store the found password
+                foundThreadId = threadId;  //store the thread id that found the password
+                System.out.println("Thread " + threadId + " found the password: " + guessStr);  //print out which thread found the password
+                return;
+            }
+        }
+    }
+
+    public static String md5(String input) {
         try {
-            // Static getInstance method is called with hashing MD5
-            MessageDigest md = MessageDigest.getInstance("MD5");
-
-            // digest() method is called to calculate message digest
-            // of an input digest() returns array of byte
-            byte[] messageDigest = md.digest(input.getBytes());
-
-            // Convert byte array into signum representation
-            BigInteger no = new BigInteger(1, messageDigest);
-
-            // Convert message digest into hex value
-            String hashtext = no.toString(16);
-            while (hashtext.length() < 32) {
+            MessageDigest md = MessageDigest.getInstance("MD5");  //get an instance of the MD5 message digest
+            byte[] messageDigest = md.digest(input.getBytes());  //calculate the MD5 hash of the input string
+            BigInteger no = new BigInteger(1, messageDigest);  //convert the byte array to a BigInteger
+            String hashtext = no.toString(16);  //convert the BigInteger to a hexadecimal string
+            while (hashtext.length() < 32) {  //pad with leading zeros if necessary
                 hashtext = "0" + hashtext;
             }
-            return hashtext;
-        }
-        // For specifying wrong message digest algorithms
-        catch (NoSuchAlgorithmException e) {
+            return hashtext;  //return the resulting MD5 hash
+        } catch (NoSuchAlgorithmException e) {  //catch any exceptions related to the MD5 algorithm not being available
             throw new RuntimeException(e);
         }
     }
