@@ -32,13 +32,15 @@ public class MD5Crack {
         }
         Timestamp endTimestamp = new Timestamp(System.currentTimeMillis());
         if (found) {
-            System.out.println("Password found: " + foundPassword + " by thread " + foundThreadId);
+            //System.out.println("Password found: " + foundPassword + " by thread " + foundThreadId);
+            System.out.println("Password found: " + foundPassword);
+            System.out.println("Thread ID: " + foundThreadId);
         } else {
             System.out.println("Password not found.");
         }
 
         System.out.println("Ending MD5 crack at " + endTimestamp);
-        System.out.println("Total time taken: " + (endTimestamp.getTime() - timestamp.getTime()) + " milliseconds");
+        System.out.println("Execution time: " + (endTimestamp.getTime() - timestamp.getTime()) + " milliseconds");
         
     }
 
@@ -54,7 +56,7 @@ public class MD5Crack {
                for example if remainder  = 1 will assign extra one to thread 0, remainder = 2 will assign one for thread 0 and one for thread 1*/
             long rangeStart = start;
             long rangeEnd = start + size - 1;  //calculate the end of the range for the current thread
-            int threadId = t;  //store the thread id for use in the lambda expression
+            int threadId = t + 1;  //store the thread id for use in the lambda expression
             threads[t] = new Thread(() -> {
                 searchRange(rangeStart, rangeEnd, pwLength, targetHash, threadId);  //call the searchRange function for the current thread
             });
@@ -79,7 +81,7 @@ public class MD5Crack {
                 found = true;  //set the found flag to true
                 foundPassword = guessStr;  //store the found password
                 foundThreadId = threadId;  //store the thread id that found the password
-                System.out.println("Thread " + threadId + " found the password: " + guessStr);  //print out which thread found the password
+                //System.out.println("Thread " + threadId + " found the password: " + guessStr);  //print out which thread found the password
                 return;
             }
         }
