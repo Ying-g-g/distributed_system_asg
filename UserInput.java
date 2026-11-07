@@ -33,7 +33,7 @@ public class UserInput {
 
                 try {
                     System.out.print("Please enter the number of threads (1-10): ");
-                    noOfThreads = Integer.parseInt(scanner.nextLine());
+                    noOfThreads = Integer.parseInt(scanner.nextLine().trim());
                     if (noOfThreads >= 1 && noOfThreads <= 10) {
                         break;
                     } else {

@@ -2,12 +2,14 @@ import java.sql.Timestamp;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MD5Crack {
     //Declare all variables
     static volatile boolean found = false;
     static volatile String foundPassword = null;
     static volatile int foundThreadId = -1;
+    static AtomicLong attempts = new AtomicLong(0);  //atomic counter for the number of attempts made   
 
     //Function to call out all executing functions
     public static void main(String[] args) {
@@ -16,10 +18,28 @@ public class MD5Crack {
         String targetHash = args[0];  //get the target hash from the command line arguments
         int numThreads = Integer.parseInt(args[1]);  //get the number of threads
         int pwLength = Integer.parseInt(args[2]);  //get the password length
-
-        long searchSpace = (long) Math.pow(95, pwLength);  //calculate the total search space based on the password length
+        attempts.set(0);  //reset the atomic counter for the number of attempts made
+        long searchSpace = 1;
+        for (int i = 0; i < pwLength; i++) searchSpace *= 95;  //calculate the total search space based on the password length
+        final long finalSearchSpace = searchSpace;  //store the search space in a final variable for use in the lambda expression
         Thread[] threads = createThreads(numThreads, searchSpace, pwLength, targetHash);  //create the threads
 
+        //Track proggress of the search
+        Thread progressThread = new Thread(() -> {
+            while (!found) {
+                try {
+                    Thread.sleep(5000);  //sleep for 5 seconds
+                } catch (InterruptedException e) {
+                    return;  //if interrupted, exit the progress tracking thread
+                }
+                long currentAttempts = attempts.get();  //get the current number of attempts made
+                double progress = (double) currentAttempts / finalSearchSpace * 100;  //calculate the progress percentage
+                System.out.printf("Progress: %.2f%%, Attempts: %d%n", progress, currentAttempts);  //print out the progress and number of attempts
+            }
+        });
+        progressThread.setDaemon(true);  //set the progress thread as a daemon thread so it doesn't prevent the program from exiting
+        progressThread.start();  //start the progress tracking thread
+        
         for (Thread thread : threads) {
             thread.start();  //start each thread
         }
@@ -29,6 +49,12 @@ public class MD5Crack {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        }
+        progressThread.interrupt();  //interrupt the progress tracking thread once all threads have finished
+        try {
+            progressThread.join();  //wait for the progress tracking thread to finish
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
         Timestamp endTimestamp = new Timestamp(System.currentTimeMillis());
         if (found) {
@@ -76,6 +102,8 @@ public class MD5Crack {
             }
             String guessStr = new String(guess);  //convert the character array to a string
             String guessHash = md5(guessStr);  //calculate the MD5 hash of
+
+            attempts.incrementAndGet();  //increment the atomic counter for the number of attempts made 
 
             if (guessHash.equalsIgnoreCase(targetHash)) {  //check if the guess hash matches the target hash
                 found = true;  //set the found flag to true
