@@ -13,14 +13,15 @@ public class MD5Crack {
 
     //Function to call out all executing functions
     public static void main(String[] args) {
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        System.out.println("Starting MD5 crack at " + timestamp);
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());  //time start
+        System.out.println("Starting MD5 crack at " + timestamp);  //print search start time
         String targetHash = args[0];  //get the target hash from the command line arguments
-        int numThreads = Integer.parseInt(args[1]);  //get the number of threads
-        int pwLength = Integer.parseInt(args[2]);  //get the password length
+        int numThreads = Integer.parseInt(args[1]);  //get the number of threads from user input
+        int pwLength = Integer.parseInt(args[2]);  //get the password length from user input
         attempts.set(0);  //reset the atomic counter for the number of attempts made
         long searchSpace = 1;
-        for (int i = 0; i < pwLength; i++) searchSpace *= 95;  //calculate the total search space based on the password length
+
+        for (int i = 0; i < pwLength; i++) searchSpace *= 95;  //calculate the total search space based on the password length (126-32+1=95)
         final long finalSearchSpace = searchSpace;  //store the search space in a final variable for use in the lambda expression
         Thread[] threads = createThreads(numThreads, searchSpace, pwLength, targetHash);  //create the threads
 
@@ -30,7 +31,7 @@ public class MD5Crack {
                 try {
                     Thread.sleep(5000);  //sleep for 5 seconds
                 } catch (InterruptedException e) {
-                    return;  //if interrupted, exit the progress tracking thread
+                    return;  //exit the progress tracking thread if interrupted
                 }
                 long currentAttempts = attempts.get();  //get the current number of attempts made
                 double progress = (double) currentAttempts / finalSearchSpace * 100;  //calculate the progress percentage
@@ -58,15 +59,14 @@ public class MD5Crack {
         }
         Timestamp endTimestamp = new Timestamp(System.currentTimeMillis());
         if (found) {
-            //System.out.println("Password found: " + foundPassword + " by thread " + foundThreadId);
-            System.out.println("Password found: " + foundPassword);
-            System.out.println("Thread ID: " + foundThreadId);
+            System.out.println("Password found: " + foundPassword);  //print found password
+            System.out.println("Thread ID: " + foundThreadId);  //print the thread ID that found the password
         } else {
-            System.out.println("Password not found.");
+            System.out.println("Password not found.");  //print this message if password not found
         }
 
-        System.out.println("Ending MD5 crack at " + endTimestamp);
-        System.out.println("Execution time: " + (endTimestamp.getTime() - timestamp.getTime()) + " milliseconds");
+        System.out.println("Ending MD5 crack at " + endTimestamp);  //print search end time
+        System.out.println("Execution time: " + (endTimestamp.getTime() - timestamp.getTime()) + " milliseconds");  //print total execution time to find the password
         
     }
 
@@ -78,8 +78,6 @@ public class MD5Crack {
         long start = 0;                             //tracker of where the current thread should start searching
         for (int t = 0; t < numThreads; t++) {
             long size = chunkSize + (t < remainder ? 1 : 0);  //distribute the remainder among the first few threads
-            /* will assign the remainders for the front threads first
-               for example if remainder  = 1 will assign extra one to thread 0, remainder = 2 will assign one for thread 0 and one for thread 1*/
             long rangeStart = start;
             long rangeEnd = start + size - 1;  //calculate the end of the range for the current thread
             int threadId = t + 1;  //store the thread id for use in the lambda expression
@@ -101,7 +99,7 @@ public class MD5Crack {
                 temp /= 95;  //divide by 95 to move to the next character in the guess
             }
             String guessStr = new String(guess);  //convert the character array to a string
-            String guessHash = md5(guessStr);  //calculate the MD5 hash of
+            String guessHash = md5(guessStr);
 
             attempts.incrementAndGet();  //increment the atomic counter for the number of attempts made 
 
@@ -109,7 +107,6 @@ public class MD5Crack {
                 found = true;  //set the found flag to true
                 foundPassword = guessStr;  //store the found password
                 foundThreadId = threadId;  //store the thread id that found the password
-                //System.out.println("Thread " + threadId + " found the password: " + guessStr);  //print out which thread found the password
                 return;
             }
         }
