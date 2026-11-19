@@ -9,7 +9,7 @@ public class UserInput {
         while(true) {
 
             //reset shared variables before the next search
-            MD5Crack.found = false;
+            MD5Crack.isFound = false;
             MD5Crack.foundPassword = null;
             MD5Crack.foundThreadId = -1;
 

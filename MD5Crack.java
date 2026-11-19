@@ -6,15 +6,15 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class MD5Crack {
     //Declare all variables
-    static volatile boolean found = false;
-    static volatile String foundPassword = null;
-    static volatile int foundThreadId = -1;
+    static volatile boolean isFound = false;
+    static volatile String foundPassword = null;    //string to store the found password
+    static volatile int foundThreadId = -1;         //integer to store the thread id that found the password
     static AtomicLong attempts = new AtomicLong(0);  //atomic counter for the number of attempts made   
 
     //Function to call out all executing functions
     public static void main(String[] args) {
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());  //time start
-        System.out.println("Starting MD5 crack at " + timestamp);  //print search start time
+        Timestamp timeStart = new Timestamp(System.currentTimeMillis());  //time start
+        System.out.println("Starting MD5 crack at " + timeStart);  //print search start time
         String targetHash = args[0];  //get the target hash from the command line arguments
         int numThreads = Integer.parseInt(args[1]);  //get the number of threads from user input
         int pwLength = Integer.parseInt(args[2]);  //get the password length from user input
@@ -27,7 +27,7 @@ public class MD5Crack {
 
         //Track proggress of the search
         Thread progressThread = new Thread(() -> {
-            while (!found) {
+            while (!isFound) {
                 try {
                     Thread.sleep(5000);  //sleep for 5 seconds
                 } catch (InterruptedException e) {
@@ -57,19 +57,20 @@ public class MD5Crack {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        Timestamp endTimestamp = new Timestamp(System.currentTimeMillis());
-        if (found) {
+        Timestamp timesEnd = new Timestamp(System.currentTimeMillis());
+        if (isFound) {
             System.out.println("Password found: " + foundPassword);  //print found password
             System.out.println("Thread ID: " + foundThreadId);  //print the thread ID that found the password
         } else {
             System.out.println("Password not found.");  //print this message if password not found
         }
 
-        System.out.println("Ending MD5 crack at " + endTimestamp);  //print search end time
-        System.out.println("Execution time: " + (endTimestamp.getTime() - timestamp.getTime()) + " milliseconds");  //print total execution time to find the password
+        System.out.println("Ending MD5 crack at " + timesEnd);  //print search end time
+        System.out.println("Execution time: " + (timesEnd.getTime() - timeStart.getTime()) + " milliseconds");  //print total execution time to find the password
         
     }
 
+    //Function to create threads and assign search ranges
     static Thread[] createThreads(int numThreads, long searchSpace, int pwLength, String targetHash) {
         long chunkSize = searchSpace / numThreads;
         long remainder = searchSpace % numThreads;  //in case the search space is not evenly divisible by the number of threads
@@ -89,9 +90,10 @@ public class MD5Crack {
         return threads;
     }
 
+    //Function to search a specific range of the search space for the password
     static void searchRange(long start, long end, int pwLength, String targetHash, int threadId) {
-        for (long i = start; i <= end && !found; i++) {
-            if (found) return;
+        for (long i = start; i <= end && !isFound; i++) {
+            if (isFound) return;
             char[] guess = new char[pwLength];
             long temp = i;
             for (int j = pwLength - 1; j >= 0; j--) {
@@ -104,7 +106,7 @@ public class MD5Crack {
             attempts.incrementAndGet();  //increment the atomic counter for the number of attempts made 
 
             if (guessHash.equalsIgnoreCase(targetHash)) {  //check if the guess hash matches the target hash
-                found = true;  //set the found flag to true
+                isFound = true;  //set the found flag to true
                 foundPassword = guessStr;  //store the found password
                 foundThreadId = threadId;  //store the thread id that found the password
                 return;
